@@ -14,13 +14,6 @@
 #define GPU
 #endif
 
-// To use tracking - uncomment the following line. Tracking is supported only by OpenCV 3.x
-//#define TRACK_OPTFLOW
-
-//#include "C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v9.1\include\cuda_runtime.h"
-//#pragma comment(lib, "C:/Program Files/NVIDIA GPU Computing Toolkit/CUDA/v9.1/lib/x64/cudart.lib")
-//static std::shared_ptr<image_t> device_ptr(NULL, [](void *img) { cudaDeviceReset(); });
-
 #include "yolo_v2_class.hpp"	// imported functions from DLL
 
 #ifdef OPENCV
@@ -30,78 +23,7 @@
 #include "opencv2/videoio/videoio.hpp"
 #define OPENCV_VERSION CVAUX_STR(CV_VERSION_MAJOR)"" CVAUX_STR(CV_VERSION_MINOR)"" CVAUX_STR(CV_VERSION_REVISION)
 #pragma comment(lib, "opencv_world" OPENCV_VERSION ".lib")
-#ifdef TRACK_OPTFLOW
-#pragma comment(lib, "opencv_cudaoptflow" OPENCV_VERSION ".lib")
-#pragma comment(lib, "opencv_cudaimgproc" OPENCV_VERSION ".lib")
-#pragma comment(lib, "opencv_core" OPENCV_VERSION ".lib")
-#pragma comment(lib, "opencv_imgproc" OPENCV_VERSION ".lib")
-#pragma comment(lib, "opencv_highgui" OPENCV_VERSION ".lib")
-#endif	// TRACK_OPTFLOW
-#else
-#define OPENCV_VERSION CVAUX_STR(CV_VERSION_EPOCH)""CVAUX_STR(CV_VERSION_MAJOR)""CVAUX_STR(CV_VERSION_MINOR)
-#pragma comment(lib, "opencv_core" OPENCV_VERSION ".lib")
-#pragma comment(lib, "opencv_imgproc" OPENCV_VERSION ".lib")
-#pragma comment(lib, "opencv_highgui" OPENCV_VERSION ".lib")
 #endif	// CV_VERSION_EPOCH
-
-class track_kalman {
-public:
-	cv::KalmanFilter kf;
-	int state_size, meas_size, contr_size;
-
-
-	track_kalman(int _state_size = 10, int _meas_size = 10, int _contr_size = 0)
-		: state_size(_state_size), meas_size(_meas_size), contr_size(_contr_size)
-	{
-		kf.init(state_size, meas_size, contr_size, CV_32F);
-
-		cv::setIdentity(kf.measurementMatrix);
-		cv::setIdentity(kf.measurementNoiseCov, cv::Scalar::all(1e-1));
-		cv::setIdentity(kf.processNoiseCov, cv::Scalar::all(1e-5));
-		cv::setIdentity(kf.errorCovPost, cv::Scalar::all(1e-2));
-		cv::setIdentity(kf.transitionMatrix);
-	}
-
-	void set(std::vector<bbox_t> result_vec) {
-		for (size_t i = 0; i < result_vec.size() && i < state_size*2; ++i) {
-			kf.statePost.at<float>(i * 2 + 0) = result_vec[i].x;
-			kf.statePost.at<float>(i * 2 + 1) = result_vec[i].y;
-		}
-	}
-
-	// Kalman.correct() calculates: statePost = statePre + gain * (z(k)-measurementMatrix*statePre);
-	// corrected state (x(k)): x(k)=x'(k)+K(k)*(z(k)-H*x'(k))
-	std::vector<bbox_t> correct(std::vector<bbox_t> result_vec) {
-		cv::Mat measurement(meas_size, 1, CV_32F);
-		for (size_t i = 0; i < result_vec.size() && i < meas_size * 2; ++i) {
-			measurement.at<float>(i * 2 + 0) = result_vec[i].x;
-			measurement.at<float>(i * 2 + 1) = result_vec[i].y;
-		}
-		cv::Mat estimated = kf.correct(measurement);
-		for (size_t i = 0; i < result_vec.size() && i < meas_size * 2; ++i) {
-			result_vec[i].x = estimated.at<float>(i * 2 + 0);
-			result_vec[i].y = estimated.at<float>(i * 2 + 1);
-		}
-		return result_vec;
-	}
-
-	// Kalman.predict() calculates: statePre = TransitionMatrix * statePost;
-	// predicted state (x'(k)): x(k)=A*x(k-1)+B*u(k)
-	std::vector<bbox_t> predict() {
-		std::vector<bbox_t> result_vec;
-		cv::Mat control;
-		cv::Mat prediction = kf.predict(control);
-		for (size_t i = 0; i < prediction.rows && i < state_size * 2; ++i) {
-			result_vec[i].x = prediction.at<float>(i * 2 + 0);
-			result_vec[i].y = prediction.at<float>(i * 2 + 1);
-		}
-		return result_vec;
-	}
-
-};
-
-
-
 
 class extrapolate_coords_t {
 public:
@@ -246,10 +168,6 @@ int main(int argc, char *argv[])
 	auto obj_names = objects_names_from_file(names_file);
 	std::string out_videofile = "result.avi";
 	bool const save_output_videofile = true;
-#ifdef TRACK_OPTFLOW
-	Tracker_optflow tracker_flow;
-	detector.wait_stream = true;
-#endif
 
 	while (true) 
 	{		
@@ -267,6 +185,9 @@ int main(int argc, char *argv[])
 
 			std::string const file_ext = filename.substr(filename.find_last_of(".") + 1);
 			std::string const protocol = filename.substr(0, 7);
+
+			// video detection
+
 			if (file_ext == "avi" || file_ext == "mp4" || file_ext == "mjpg" || file_ext == "mov" || 	// video file
 				protocol == "rtmp://" || protocol == "rtsp://" || protocol == "http://" || protocol == "https:/")	// video network stream
 			{
@@ -314,29 +235,6 @@ int main(int argc, char *argv[])
 						auto old_result_vec = detector.tracking_id(result_vec);
 						auto detected_result_vec = thread_result_vec;
 						result_vec = detected_result_vec;
-#ifdef TRACK_OPTFLOW
-						// track optical flow
-						if (track_optflow_queue.size() > 0) {
-							//std::cout << "\n !!!! all = " << track_optflow_queue.size() << ", cur = " << passed_flow_frames << std::endl;
-							cv::Mat first_frame = track_optflow_queue.front();
-							tracker_flow.update_tracking_flow(track_optflow_queue.front(), result_vec);
-
-							while (track_optflow_queue.size() > 1) {
-								track_optflow_queue.pop();
-								result_vec = tracker_flow.tracking_flow(track_optflow_queue.front(), true);
-							}
-							track_optflow_queue.pop();
-							passed_flow_frames = 0;
-
-							result_vec = detector.tracking_id(result_vec);
-							auto tmp_result_vec = detector.tracking_id(detected_result_vec, false);
-							small_preview.set(first_frame, tmp_result_vec);
-
-							extrapolate_coords.new_result(tmp_result_vec, old_time_extrapolate);
-							old_time_extrapolate = cur_time_extrapolate;
-							extrapolate_coords.update_result(result_vec, cur_time_extrapolate - 1);
-						}
-#else
 						result_vec = detector.tracking_id(result_vec);	// comment it - if track_id is not required					
 						extrapolate_coords.new_result(result_vec, cur_time_extrapolate - 1);
 #endif
@@ -353,10 +251,6 @@ int main(int argc, char *argv[])
 								it->frames_counter = std::min((unsigned)3, i.frames_counter + 1);
 							}
 						}
-#ifdef TRACK_OPTFLOW
-						tracker_flow.update_cur_bbox_vec(result_vec);
-						result_vec = tracker_flow.tracking_flow(cur_frame, true);	// track optical flow
-#endif
 						consumed = false;
 						cv_pre_tracked.notify_all();
 					}
@@ -392,14 +286,7 @@ int main(int argc, char *argv[])
 							fps_cap_counter = 0;
 						}
 
-						large_preview.set(cur_frame, result_vec);
-#ifdef TRACK_OPTFLOW
-						++passed_flow_frames;
-						track_optflow_queue.push(cur_frame.clone());
-						result_vec = tracker_flow.tracking_flow(cur_frame);	// track optical flow
-						extrapolate_coords.update_result(result_vec, cur_time_extrapolate);
-						small_preview.draw(cur_frame, show_small_boxes);
-#endif						
+						large_preview.set(cur_frame, result_vec);				
 						auto result_vec_draw = result_vec;
 						if (extrapolate_flag) {
 							result_vec_draw = extrapolate_coords.predict(cur_time_extrapolate);
@@ -441,7 +328,7 @@ int main(int argc, char *argv[])
 				std::cout << "Video ended \n";
 				break;
 			}
-			else if (file_ext == "txt") {	// list of image files
+			else if (file_ext == "txt"	) {	// list of image files
 				std::ifstream file(filename);
 				if (!file.is_open()) std::cout << "File not found! \n";
 				else 
@@ -470,14 +357,13 @@ int main(int argc, char *argv[])
 				show_console_result(result_vec, obj_names);
 				cv::waitKey(0);
 			}
-#else
+
 			//std::vector<bbox_t> result_vec = detector.detect(filename);
 
 			auto img = detector.load_image(filename);
 			std::vector<bbox_t> result_vec = detector.detect(img);
 			detector.free_image(img);
-			show_console_result(result_vec, obj_names);
-#endif			
+			show_console_result(result_vec, obj_names);			
 		}
 		catch (std::exception &e) { std::cerr << "exception: " << e.what() << "\n"; getchar(); }
 		catch (...) { std::cerr << "unknown exception \n"; getchar(); }
