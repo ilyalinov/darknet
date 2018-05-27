@@ -337,8 +337,8 @@ int main(int argc, char *argv[])
 						cv::Mat mat_img = cv::imread(line);
 						std::vector<bbox_t> result_vec = detector.detect(mat_img);
 						show_console_result(result_vec, obj_names);
-						//draw_boxes(mat_img, result_vec, obj_names);
-						//cv::imwrite("res_" + line, mat_img);
+						draw_boxes(mat_img, result_vec, obj_names);
+						cv::imwrite("res_" + line, mat_img);
 					}
 				
 			}
