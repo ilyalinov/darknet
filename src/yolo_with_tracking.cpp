@@ -10,14 +10,13 @@ using namespace cv;
 
 int main(int argc, char** argv) {
 	// show help
-	if (argc < 2) {
+	if (argc<2) {
 		cout <<
 			" Usage: tracker <video_name>\n"
 			" examples:\n"
 			" example_tracking_kcf Bolt/img/%04d.jpg\n"
 			" example_tracking_kcf faceocc2.webm\n"
 			<< endl;
-		system("pause");
 		return 0;
 	}
 	// declares all required variables
@@ -38,7 +37,7 @@ int main(int argc, char** argv) {
 	tracker->init(frame, roi);
 	// perform the tracking process
 	printf("Start the tracking process, press ESC to quit.\n");
-	for ( ; ; ) {
+	for (;; ) {
 		// get frame from the video
 		cap >> frame;
 		// stop the program if no more images
