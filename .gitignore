@@ -4,6 +4,7 @@
 *.out
 *.png
 *.so
+*.user
 mnist/
 data/
 caffe/
