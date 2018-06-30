@@ -19,8 +19,8 @@ void draw_boxes(Mat mat_img, vector<bbox_t> result_vec, std::vector<std::string>
 {
 	for (auto &i : result_vec)
 	{
-		Scalar color(0, 0, 255);
-		rectangle(mat_img, Rect(i.x, i.y, i.w, i.h), color, 10);
+		Scalar color = obj_id_to_color(i.obj_id);
+		rectangle(mat_img, Rect(i.x, i.y, i.w, i.h), color, 3);
 		if (obj_names.size() > i.obj_id)
 		{
 			putText(mat_img, obj_names[i.obj_id], Point2f(i.x, i.y - 10), FONT_HERSHEY_COMPLEX_SMALL, 1, color);
