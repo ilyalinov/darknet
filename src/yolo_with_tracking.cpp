@@ -19,7 +19,7 @@ using namespace cv;
 
 int k;
 
-void draw_boxes(Mat mat_img, vector<bbox_t> result_vec, std::vector<std::string> obj_names) 
+Mat draw_boxes(Mat mat_img, vector<bbox_t> result_vec, std::vector<std::string> obj_names) 
 {
 	for (auto &i : result_vec)
 	{
@@ -39,6 +39,8 @@ void draw_boxes(Mat mat_img, vector<bbox_t> result_vec, std::vector<std::string>
 
 	cv::imshow("res/window name", mat_img);
 	// cv::imwrite("res/res" + to_string(k) + ".jpg", mat_img);
+
+	return mat_img;
 }
 
 vector<string> obj_names_from_file(string const filename)
@@ -71,12 +73,27 @@ int main()
 	Tracker tracker;
 
 	// default web-cam
-	VideoCapture cap(0);
-	// check if we succeeded
+	//VideoCapture cap(0);
+	//// check if we succeeded
+	//if (!cap.isOpened())
+	//{
+	//	return -1;
+	//}
+
+	string path = "C:/Users/ilya_/Downloads/2011_09_26/test/0000000%03d.png";
+	VideoCapture cap(path);
 	if (!cap.isOpened())
 	{
+		cout << "Error opening video stream or file" << endl;
+		system("pause");
 		return -1;
 	}
+
+	int width = (int)cap.get(CV_CAP_PROP_FRAME_WIDTH);
+	int height = (int)cap.get(CV_CAP_PROP_FRAME_HEIGHT);
+	// int fps = (int)cap.get(CAP_PROP_FPS);
+	int fps = 10;
+	VideoWriter video("result.avi", CV_FOURCC('I', 'Y', 'U', 'V'), fps, cv::Size(width, height), true);
 
 	k = 0;
 	auto obj_names = obj_names_from_file(names_file);
@@ -113,7 +130,8 @@ int main()
 					}
 				}
 
-				draw_boxes(frame, result_vec, obj_names);
+				Mat output_frame = draw_boxes(frame, result_vec, obj_names);
+				video.write(output_frame);
 				tracker.extrapolate(detection_vec, frame.size());
 			}
 			else
@@ -139,5 +157,6 @@ int main()
 		}
 	}
 
+	video.release();
 	return 0;
 }
