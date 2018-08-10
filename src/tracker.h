@@ -19,7 +19,7 @@ class Tracker
 	};
 
 	static const int det_frames_history = 30;
-	static const int track_frames_history = 5;
+	static const int track_frames_history = 3;
 	std::deque<std::vector<bbox_t>> detection_history;
 	std::vector<tracked_bbox_t> tracking_history;
 public:
