@@ -6,7 +6,7 @@
 #define GPU
 
 // import functions from YOLO DLL
-#include "yolo_v2_class.hpp"
+#include "../../../src/yolo_v2_class.hpp"
 
 #include "tracker.h"
 

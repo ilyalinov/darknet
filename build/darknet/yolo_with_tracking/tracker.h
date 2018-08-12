@@ -3,7 +3,7 @@
 #include <deque>
 #include <opencv2/opencv.hpp>
 
-#include "yolo_v2_class.hpp"
+#include "../../../src/yolo_v2_class.hpp"
 
 class Tracker
 {

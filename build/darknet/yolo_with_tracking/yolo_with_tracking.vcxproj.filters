@@ -18,15 +18,15 @@
     <Library Include="..\x64\yolo_cpp_dll.lib" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="..\..\..\src\yolo_with_tracking.cpp">
+    <ClCompile Include="yolo_with_tracking.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\src\tracker.cpp">
+    <ClCompile Include="tracker.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\..\..\src\tracker.h">
+    <ClInclude Include="tracker.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

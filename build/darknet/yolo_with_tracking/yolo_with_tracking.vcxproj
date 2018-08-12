@@ -130,11 +130,11 @@
     <Library Include="..\x64\yolo_cpp_dll.lib" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="..\..\..\src\tracker.cpp" />
-    <ClCompile Include="..\..\..\src\yolo_with_tracking.cpp" />
+    <ClCompile Include="tracker.cpp" />
+    <ClCompile Include="yolo_with_tracking.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\..\..\src\tracker.h" />
+    <ClInclude Include="tracker.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
