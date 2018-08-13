@@ -18,7 +18,7 @@ class Tracker
 		tracked_bbox_t() : shiftX(0), shiftY(0), last_detection_frames_ago(track_frames_history), current_detection(false) {}
 	};
 
-	static const int det_frames_history = 30;
+	static const int det_frames_history = 20;
 	static const int track_frames_history = 3;
 	std::deque<std::vector<bbox_t>> detection_history;
 	std::vector<tracked_bbox_t> tracking_history;
@@ -35,7 +35,7 @@ private:
 	// log new detection result
 	void add_new_result(std::vector<bbox_t> detection_vec);
 
-	tracked_bbox_t extrapolate_bbox(bbox_t b);
+	tracked_bbox_t extrapolate_bbox(bbox_t b, cv::Size size);
 
 	std::pair<double, double> calculate_shift(bbox_t b1, bbox_t b2);
 
